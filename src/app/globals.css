@@ -1,0 +1,508 @@
+@import "tailwindcss";
+
+/* ===========================================================
+   DEVTRACKACADEMY — NEO-BRUTALIST DECK SYSTEM
+   Authored against a FIXED 1920x1080 stage (frontend-slides).
+   Palette is unchanged from the original design foundations.
+   =========================================================== */
+
+@theme {
+  --color-ink: #1B1F3B;
+  --color-paper: #FFF8F0;
+  --color-paper-sunk: #F5EBE0;
+  --color-paper-pure: #FFFFFF;
+  --color-orange: #FF6B35;
+  --color-sky: #4EA8FF;
+  --color-yellow: #FFC93C;
+  --color-mint: #6EE7B7;
+  --color-coral: #FF5C7A;
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  /* Neo-brutalism = hard corners. Flatten Tailwind's whole radius
+     scale so every legacy `rounded-xl` / `rounded-2xl` squares off
+     without touching 3000 lines of markup. `rounded-full` is a
+     hardcoded value in Tailwind v4 and intentionally survives. */
+  --radius-xs:  0px;
+  --radius-sm:  0px;
+  --radius-md:  0px;
+  --radius-lg:  0px;
+  --radius-xl:  0px;
+  --radius-2xl: 0px;
+  --radius-3xl: 0px;
+  --radius-4xl: 0px;
+
+  /* --- Breakpoints: collapsed on purpose -------------------------------
+     Slides live on a FIXED 1920x1080 stage, but Tailwind's `sm:`/`md:`/
+     `lg:` prefixes key off the BROWSER WINDOW, not the stage. Left alone,
+     a narrow window would collapse slide internals to a mobile layout
+     *inside* a 1920px stage — exactly the reflow the fixed-stage rule
+     forbids.
+
+     Collapsing every breakpoint to a near-zero width makes them all
+     permanently true, so each utility resolves to its widest variant and
+     the stage always renders its desktop layout. Values ascend (1..5px)
+     rather than all being 0 so Tailwind's variant sort order stays
+     deterministic: base < sm < md < lg < xl < 2xl.
+
+     Deck chrome that genuinely must react to the real window uses
+     arbitrary variants (`max-[720px]:`), which compile to literal media
+     queries and are unaffected by these values. */
+  --breakpoint-sm:  1px;
+  --breakpoint-md:  2px;
+  --breakpoint-lg:  3px;
+  --breakpoint-xl:  4px;
+  --breakpoint-2xl: 5px;
+}
+
+:root {
+  /* --- Design Foundations (unchanged palette) --- */
+  --ink:        #1B1F3B;
+  --paper:      #FFF8F0;
+  --paper-sunk: #F5EBE0;
+  --paper-pure: #FFFFFF;
+
+  /* Accents */
+  --orange:     #FF6B35;
+  --sky:        #4EA8FF;
+  --cobalt:     #4EA8FF;
+  --yellow:     #FFC93C;
+  --mint:       #6EE7B7;
+  --coral:      #FF5C7A;
+
+  /* Semantic Mapping */
+  --brand:             var(--orange);
+  --platform-workshop: var(--orange);
+  --accent-data:       var(--yellow);
+  --accent-positive:   var(--mint);
+  --accent-future:     var(--coral);
+  --negative:          var(--coral);
+
+  /* Stage chrome */
+  --stage-bg:   #12152B;   /* letterbox surround */
+  --slide-bg:   var(--paper);
+
+  /* Brutalist structure — authored at 1920x1080 stage scale */
+  --rule:        6px;      /* standard border weight */
+  --rule-heavy:  8px;
+  --shadow-1:    6px 6px 0 var(--ink);
+  --shadow-2:    10px 10px 0 var(--ink);
+  --shadow-3:    16px 16px 0 var(--ink);
+
+  /* Motion */
+  --dur-micro:  150ms;
+  --dur-fast:   240ms;
+  --dur-base:   400ms;
+  --ease-brut:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-snap:  cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.dark-theme {
+  --paper:      #131627;
+  --paper-sunk: #1B1F3B;
+  --paper-pure: #24294A;
+  --ink:        #FFF8F0;
+}
+
+/* ===========================================================
+   FIXED 16:9 STAGE — MANDATORY BASE (frontend-slides/viewport-base.css)
+   Slides are authored at 1920x1080 and scaled AS A WHOLE.
+   Never reflow slide content per device.
+   =========================================================== */
+
+/* 1. Document base.
+   The viewport lock (overflow/user-select) is NOT applied globally any
+   more — the homepage and admin page are ordinary scrolling documents.
+   DeckShell applies and reverts it on mount, so only the deck route
+   takes over the window. */
+html, body {
+  width: 100%;
+  margin: 0;
+  background: var(--paper);
+}
+
+body {
+  color: var(--ink);
+  font-family: var(--font-body), system-ui, sans-serif;
+}
+
+/* 2. Full-window deck viewport */
+.deck-viewport {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--stage-bg, #000);
+}
+
+/* 3. Fixed 1920x1080 design canvas. JS sets translate()+scale(). */
+.deck-stage {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  transform-origin: 0 0;
+  background-color: var(--slide-bg, #fff);
+  /* Brutalist paper texture: dot grid over warm paper */
+  background-image: radial-gradient(rgba(27, 31, 59, 0.14) 1.5px, transparent 1.6px);
+  background-size: 32px 32px;
+  background-position: -6px -6px;
+}
+
+/* 4. Slides stack inside the fixed stage.
+   Visibility is driven by .active/.visible — NEVER display:none,
+   because later layout rules (.slide-content{display:flex}) would
+   override it and show every slide at once. */
+.slide {
+  position: absolute;
+  inset: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  display: block;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.slide.active,
+.slide.visible {
+  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
+  z-index: 1;
+}
+
+/* 5. Keep media inside authored slide bounds */
+img, video, canvas, svg {
+  max-width: 100%;
+  max-height: 100%;
+}
+
+/* 6. Presentation chrome lives OUTSIDE the slide design system */
+.deck-controls {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 1000;
+}
+
+/* 7. Print one fixed-size slide per page */
+@media print {
+  html, body {
+    width: 1920px;
+    height: auto;
+    overflow: visible;
+    background: #fff;
+  }
+  .deck-viewport {
+    position: static;
+    overflow: visible;
+    background: #fff;
+  }
+  .deck-stage {
+    position: static;
+    width: auto;
+    height: auto;
+    transform: none !important;
+    background: none;
+  }
+  .slide {
+    position: relative;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    width: 1920px;
+    height: 1080px;
+    break-after: page;
+    page-break-after: always;
+  }
+  .slide:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  .deck-controls,
+  .deck-chrome {
+    display: none !important;
+  }
+}
+
+/* 8. Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.2s !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ===========================================================
+   REVEAL SYSTEM
+   Staggered entrance driven by .slide.visible on the active slide.
+   One orchestrated load beats scattered micro-interactions.
+   =========================================================== */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity var(--dur-base) var(--ease-brut),
+    transform var(--dur-base) var(--ease-brut);
+}
+
+.slide.visible .reveal {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Stagger — explicit delay steps, applied via .reveal-N */
+.slide.visible .reveal-1 { transition-delay: 0.06s; }
+.slide.visible .reveal-2 { transition-delay: 0.14s; }
+.slide.visible .reveal-3 { transition-delay: 0.22s; }
+.slide.visible .reveal-4 { transition-delay: 0.30s; }
+.slide.visible .reveal-5 { transition-delay: 0.38s; }
+.slide.visible .reveal-6 { transition-delay: 0.46s; }
+
+/* Hard slam-in for headline blocks: brutalist, no easing softness */
+.reveal-slam {
+  opacity: 0;
+  transform: translateX(-40px);
+  transition:
+    opacity var(--dur-fast) var(--ease-snap),
+    transform var(--dur-fast) var(--ease-snap);
+}
+.slide.visible .reveal-slam {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* ===========================================================
+   TYPOGRAPHY
+   =========================================================== */
+h1, h2, h3, h4, .font-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+code, pre, .font-mono {
+  font-family: var(--font-mono), monospace;
+}
+
+/* ===========================================================
+   NEO-BRUTALIST CORE COMPONENTS
+   =========================================================== */
+
+/* Marker Highlight — hard-edged, boxed, offset */
+.marker {
+  position: relative;
+  display: inline-block;
+  white-space: nowrap;
+  color: #FFFFFF;
+  padding: 0.05em 0.35em;
+  z-index: 1;
+  font-weight: 900;
+}
+
+.marker::before {
+  content: "";
+  position: absolute;
+  inset: 8% -0.12em 6%;
+  background: var(--brand);
+  transform: skewX(-3deg);
+  z-index: -1;
+  border-radius: 0;
+  border: 3px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--ink);
+}
+
+.marker-sky::before    { background: var(--sky); }
+.marker-mint::before   { background: var(--mint); }
+.marker-coral::before  { background: var(--coral); }
+.marker-yellow::before { background: var(--yellow); }
+
+.marker-sky,
+.marker-mint,
+.marker-yellow { color: #1B1F3B; }
+
+/* Tactile Buttons — square, heavy rule, hard offset */
+.tactile-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: var(--rule) solid var(--ink);
+  border-radius: 0;
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  box-shadow: var(--shadow-1);
+  transition: transform var(--dur-micro) var(--ease-brut),
+              box-shadow var(--dur-micro) var(--ease-brut);
+  user-select: none;
+  cursor: pointer;
+}
+
+.tactile-btn:hover {
+  transform: translate(-3px, -3px);
+  box-shadow: var(--shadow-2);
+}
+
+.tactile-btn:active {
+  transform: translate(3px, 3px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.tactile-btn:disabled {
+  opacity: 0.35;
+  pointer-events: none;
+  cursor: not-allowed;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+.tactile-btn:focus-visible {
+  outline: 4px solid var(--sky);
+  outline-offset: 3px;
+}
+
+.tactile-btn-primary   { background-color: var(--brand);      color: #FFFFFF; }
+.tactile-btn-secondary { background-color: var(--paper-pure); color: var(--ink); }
+.tactile-btn-sky       { background-color: var(--sky);        color: #1B1F3B; }
+.tactile-btn-mint      { background-color: var(--mint);       color: #1B1F3B; }
+.tactile-btn-coral     { background-color: var(--coral);      color: #FFFFFF; }
+
+/* Brutalist Cards — square corners, heavy rule, deep offset */
+.card-brut {
+  background-color: var(--paper-pure);
+  border: var(--rule) solid var(--ink);
+  border-radius: 0;
+  box-shadow: var(--shadow-2);
+  transition: transform var(--dur-fast) var(--ease-brut),
+              box-shadow var(--dur-fast) var(--ease-brut);
+}
+
+.card-brut-interactive:hover {
+  transform: translate(-4px, -5px);
+  box-shadow: var(--shadow-3);
+}
+
+.card-brut-recessed {
+  background-color: var(--paper-sunk);
+  border: var(--rule) solid var(--ink);
+  border-radius: 0;
+  box-shadow: inset 4px 4px 0 rgba(27, 31, 59, 0.12);
+}
+
+/* Hard Offset Shadow utilities */
+.brut-shadow-sm { box-shadow: 4px 4px 0 var(--ink); }
+.brut-shadow    { box-shadow: var(--shadow-1); }
+.brut-shadow-lg { box-shadow: var(--shadow-2); }
+.brut-shadow-xl { box-shadow: var(--shadow-3); }
+
+/* Tilts */
+.tilt-neg-2 { transform: rotate(-2deg); }
+.tilt-neg-1 { transform: rotate(-1deg); }
+.tilt-pos-1 { transform: rotate(1deg); }
+.tilt-pos-2 { transform: rotate(2deg); }
+
+.tilt-hover-reset { transition: transform 200ms var(--ease-brut); }
+.tilt-hover-reset:hover { transform: rotate(0deg) translate(-3px, -3px); }
+
+/* Mono Chips — squared off, heavier rule */
+.chip-mono {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.3rem 0.85rem;
+  border: 3px solid var(--ink);
+  border-radius: 0;
+  font-family: var(--font-mono), monospace;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  box-shadow: 3px 3px 0 var(--ink);
+}
+
+/* Slide body scale — STATIC FALLBACK.
+   The 50 slide bodies were authored against a ~1300x480 content box; the
+   fixed stage gives them ~1776x690. `zoom` (not transform:scale) re-reads
+   that authored design at stage size while keeping type, spacing, borders
+   and shadows in proportion — and unlike transform it participates in
+   layout, so flex/grid still fill the box.
+
+   useFitScale overrides this with a per-slide inline zoom once a slide is
+   shown. This value is what unvisited slides use — notably when printing,
+   where every slide renders at once — and it is verified to fit all 50. */
+.slide-body {
+  zoom: 1.35;
+}
+
+/* Section label rail — vertical brutalist spine */
+.brut-rail {
+  border-left: var(--rule-heavy) solid var(--ink);
+  padding-left: 24px;
+}
+
+/* Diagonal caution stripes — brutalist accent band */
+.brut-stripes {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--ink) 0 12px,
+    transparent 12px 24px
+  );
+}
+
+/* ===========================================================
+   DECK CHROME (outside the stage — not part of slide design)
+   =========================================================== */
+.deck-chrome {
+  position: fixed;
+  z-index: 900;
+  font-family: var(--font-mono), monospace;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track {
+  background: var(--paper-sunk);
+  border-left: 3px solid var(--ink);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--brand);
+  border: 3px solid var(--ink);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--ink); }
+
+/* ===========================================================
+   ANIMATIONS
+   =========================================================== */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-30px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes popIn {
+  0%   { opacity: 0; transform: scale(0.95); }
+  70%  { transform: scale(1.02); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.animate-slide-next { animation: slideInRight 250ms var(--ease-brut) forwards; }
+.animate-slide-prev { animation: slideInLeft 250ms var(--ease-brut) forwards; }
+.animate-pop        { animation: popIn 300ms var(--ease-snap) forwards; }
+.animate-fadeIn     { animation: fadeIn 200ms var(--ease-brut) forwards; }
