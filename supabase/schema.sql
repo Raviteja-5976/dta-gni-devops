@@ -26,3 +26,22 @@ alter table public.workshop_settings enable row level security;
 insert into public.workshop_settings (key, value)
 values ('unlocked-sessions', '[]'::jsonb)
 on conflict (key) do nothing;
+
+-- ===================================================================
+-- Notes board — links and info the instructor publishes for students.
+-- Shown on /notes, managed from /admin. Safe to re-run.
+-- ===================================================================
+
+create table if not exists public.workshop_notes (
+  id         uuid        primary key default gen_random_uuid(),
+  title      text        not null,
+  url        text,
+  body       text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists workshop_notes_created_at_idx
+  on public.workshop_notes (created_at desc);
+
+-- Same lockdown as above: only the server's service role key can touch it.
+alter table public.workshop_notes enable row level security;

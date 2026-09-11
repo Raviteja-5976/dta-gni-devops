@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { Lock, ArrowRight, Clock } from "lucide-react";
+import { Lock, ArrowRight, Clock, StickyNote } from "lucide-react";
 import { SESSIONS } from "@/lib/sessions";
 import { getUnlockedSessions } from "@/lib/store";
 
@@ -51,6 +51,14 @@ export default async function HomePage() {
             machine&rdquo; to containers, pipelines and infrastructure as code.
             Sessions open as we reach them in class.
           </p>
+
+          <Link
+            href="/notes"
+            className="tactile-btn tactile-btn-sky px-5 py-2.5 text-xs mt-8"
+          >
+            <StickyNote className="w-4 h-4 shrink-0" />
+            Notes &amp; links
+          </Link>
 
           <div className="mt-8 h-2 w-full brut-stripes opacity-25" />
         </header>

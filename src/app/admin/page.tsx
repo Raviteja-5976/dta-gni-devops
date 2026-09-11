@@ -1,15 +1,28 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Lock, Unlock, ArrowLeft, LogOut, TriangleAlert } from "lucide-react";
+import {
+  Lock,
+  Unlock,
+  ArrowLeft,
+  LogOut,
+  TriangleAlert,
+  Trash2,
+} from "lucide-react";
 import { SESSIONS } from "@/lib/sessions";
 import {
   getUnlockedSessions,
   storageMode,
   supabaseConfigProblem,
 } from "@/lib/store";
+import { getNotes } from "@/lib/notes";
 import { isAdmin, isAdminConfigured } from "@/lib/admin-auth";
 import { AdminLogin } from "./AdminLogin";
-import { logoutAction, toggleSessionAction } from "./actions";
+import { NoteForm } from "./NoteForm";
+import {
+  deleteNoteAction,
+  logoutAction,
+  toggleSessionAction,
+} from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,11 +36,12 @@ export default async function AdminPage() {
     return <AdminLogin configured={isAdminConfigured()} />;
   }
 
-  const [unlocked, mode, configProblem] = [
-    await getUnlockedSessions(true),
-    storageMode(),
-    supabaseConfigProblem(),
-  ];
+  const [unlocked, notes] = await Promise.all([
+    getUnlockedSessions(true),
+    getNotes(true),
+  ]);
+  const mode = storageMode();
+  const configProblem = supabaseConfigProblem();
 
   return (
     <main className="min-h-screen bg-[#FFF8F0] bg-[radial-gradient(rgba(27,31,59,0.14)_1.5px,transparent_1.6px)] [background-size:32px_32px]">
@@ -174,6 +188,68 @@ export default async function AdminPage() {
         <p className="mt-10 font-mono text-[12px] text-[#1B1F3B]/45 uppercase tracking-wider">
           Storage: {mode} · {unlocked.length} of {SESSIONS.length} active
         </p>
+
+        {/* ---------- Notes board ---------- */}
+        <section className="mt-16">
+          <div className="flex items-end justify-between gap-4 flex-wrap mb-6">
+            <div>
+              <h2 className="font-display text-[32px] leading-tight text-[#1B1F3B] tracking-tight">
+                Notes &amp; links
+              </h2>
+              <p className="font-sans text-[15px] text-[#1B1F3B]/70 mt-1">
+                Published instantly to{" "}
+                <Link href="/notes" className="underline underline-offset-4 hover:text-[#FF6B35]">
+                  /notes
+                </Link>{" "}
+                for every student.
+              </p>
+            </div>
+          </div>
+
+          <NoteForm />
+
+          {notes.length > 0 && (
+            <ul className="mt-8 space-y-4">
+              {notes.map((note) => (
+                <li
+                  key={note.id}
+                  className="p-5 bg-white border-4 border-[#1B1F3B] flex items-start justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <h3 className="font-display text-[17px] leading-tight text-[#1B1F3B] break-words">
+                      {note.title}
+                    </h3>
+                    {note.url && (
+                      <a
+                        href={note.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-mono text-[12px] text-[#FF6B35] underline underline-offset-4 break-all"
+                      >
+                        {note.url}
+                      </a>
+                    )}
+                    {note.body && (
+                      <p className="font-sans text-[14px] text-[#1B1F3B]/65 mt-1 whitespace-pre-wrap break-words line-clamp-3">
+                        {note.body}
+                      </p>
+                    )}
+                  </div>
+                  <form action={deleteNoteAction} className="shrink-0">
+                    <input type="hidden" name="id" value={note.id} />
+                    <button
+                      type="submit"
+                      aria-label={`Delete ${note.title}`}
+                      className="tactile-btn tactile-btn-coral px-3 py-2 text-xs"
+                    >
+                      <Trash2 className="w-4 h-4 shrink-0" />
+                    </button>
+                  </form>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
     </main>
   );

@@ -81,7 +81,7 @@ export function supabaseConfigProblem(): string | null {
   return null;
 }
 
-function supabase(): SupabaseClient | null {
+export function supabase(): SupabaseClient | null {
   if (cachedClient) return cachedClient;
 
   const url =
@@ -107,9 +107,17 @@ export function storageMode(): StorageMode {
 }
 
 /** Turn PostgREST's terser failures into something actionable. */
-function describeError(error: { message: string; code?: string }): string {
-  if (error.code === "42P01" || error.message.includes("does not exist")) {
-    return `Table "${TABLE}" is missing. Run supabase/schema.sql in your project's SQL editor.`;
+export function describeError(
+  error: { message: string; code?: string },
+  table: string = TABLE
+): string {
+  if (
+    error.code === "42P01" ||
+    error.code === "PGRST205" ||
+    error.message.includes("does not exist") ||
+    error.message.includes("Could not find the table")
+  ) {
+    return `Table "${table}" is missing. Run supabase/schema.sql in your project's SQL editor.`;
   }
   // Node's fetch collapses DNS/TLS/connection errors into "fetch failed",
   // which says nothing useful on its own.
