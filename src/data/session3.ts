@@ -8,6 +8,12 @@ import type { SlideData } from "./slides";
    on the Lehar Loom / Sam story, but this one drops the narrative and
    stays practical throughout — "let's build something real". The
    Task Manager is the through-line instead of a cast.
+
+   The project is the Flask + MySQL Task Manager in prj/step1 and
+   prj/step2, built twice: first as two containers wired by hand
+   (step1), then as the same application described in one
+   compose.yaml (step2). Names, ports and credentials on these
+   slides match those folders exactly.
    =========================================================== */
 
 const CH = {
@@ -85,10 +91,10 @@ export const SESSION3_SLIDES: SlideData[] = [
       {
         kind: "terminal",
         lines: [
-          { cmd: "docker build -t task-app ." },
-          { cmd: "docker stop task-app" },
-          { cmd: "docker rm task-app" },
-          { cmd: "docker run -p 8501:8501 task-app" },
+          { cmd: "docker build -t hello-user ." },
+          { cmd: "docker stop hello-user" },
+          { cmd: "docker rm hello-user" },
+          { cmd: "docker run -p 8501:8501 hello-user" },
           { comment: "…and again. And again." },
         ],
       },
@@ -116,7 +122,7 @@ export const SESSION3_SLIDES: SlideData[] = [
           title: "After",
           tone: "sky",
           mono: true,
-          lines: ['st.title("My Task Manager")'],
+          lines: ['st.title("Hello, Docker")'],
         },
       },
     ],
@@ -320,7 +326,7 @@ export const SESSION3_SLIDES: SlideData[] = [
         kind: "code",
         filename: "app.py",
         language: "python",
-        code: 'st.title("Docker Task Manager")',
+        code: 'st.title("Hello, Docker")',
       },
     ],
   },
@@ -518,15 +524,16 @@ export const SESSION3_SLIDES: SlideData[] = [
     slideNumber: 22,
     chapter: CH.multi,
     title: "What we're building: Task Manager",
-    subtitle: "Two services — a Streamlit app and a MySQL database.",
+    subtitle: "Two services — a Flask app and a MySQL database.",
     badge: "THE PROJECT",
-    speakerNote: "This is the thing we build for the rest of the session.",
+    speakerNote:
+      "This is the thing we build for the rest of the session — and we build it twice: by hand first, then with Compose.",
     blocks: [
       {
         kind: "boxes",
         boxes: [
-          { title: "Streamlit", lines: ["the app"], tone: "orange" },
-          { title: "MySQL", lines: ["the database"], tone: "sky" },
+          { title: "Flask", lines: ["the app", "port 5000"], tone: "orange" },
+          { title: "MySQL 8.4", lines: ["the database", "port 3306"], tone: "sky" },
         ],
       },
     ],
@@ -543,14 +550,14 @@ export const SESSION3_SLIDES: SlideData[] = [
       {
         kind: "split",
         left: {
-          title: "Streamlit container",
+          title: "Flask container",
           tone: "orange",
-          lines: ["Runs the UI", "Knows nothing about MySQL"],
+          lines: ["Serves the pages", "Knows nothing about MySQL"],
         },
         right: {
           title: "MySQL container",
           tone: "sky",
-          lines: ["Runs the database", "Knows nothing about Streamlit"],
+          lines: ["Runs the database", "Knows nothing about Flask"],
         },
       },
     ],
@@ -600,11 +607,11 @@ export const SESSION3_SLIDES: SlideData[] = [
       {
         kind: "terminal",
         lines: [
-          { cmd: "docker network create task-network" },
+          { cmd: "docker network create taskmanager-net" },
           { out: "b3f19c2a7d40" },
           { cmd: "docker network ls" },
-          { out: "NETWORK ID     NAME           DRIVER" },
-          { out: "b3f19c2a7d40   task-network   bridge" },
+          { out: "NETWORK ID     NAME              DRIVER" },
+          { out: "b3f19c2a7d40   taskmanager-net   bridge" },
         ],
       },
     ],
@@ -623,12 +630,14 @@ export const SESSION3_SLIDES: SlideData[] = [
         filename: "terminal",
         language: "bash",
         code: `docker run -d \\
-  --name task-db \\
-  --network task-network \\
-  -e MYSQL_ROOT_PASSWORD=example \\
+  --name taskmanager-db \\
+  --network taskmanager-net \\
   -e MYSQL_DATABASE=tasks \\
-  -v mysql-data:/var/lib/mysql \\
-  mysql:8`,
+  -e MYSQL_USER=taskuser \\
+  -e MYSQL_PASSWORD=taskpass \\
+  -e MYSQL_ROOT_PASSWORD=rootpass \\
+  -v taskmanager-mysql-data:/var/lib/mysql \\
+  mysql:8.4`,
       },
     ],
   },
@@ -639,18 +648,23 @@ export const SESSION3_SLIDES: SlideData[] = [
     title: "Run the app on the same network",
     badge: "HANDS-ON",
     speakerNote:
-      "Same network name. That's what puts them in reach of each other.",
+      "Build first, then run. Same network name — that is what puts them in reach of each other.",
     blocks: [
       {
         kind: "code",
         filename: "terminal",
         language: "bash",
-        code: `docker run -d \\
-  --name task-app \\
-  --network task-network \\
-  -p 8501:8501 \\
-  -v "$(pwd):/app" \\
-  hello-user:2.0`,
+        code: `docker build -t taskmanager-app .
+
+docker run -d \\
+  --name taskmanager-app \\
+  --network taskmanager-net \\
+  -p 5000:5000 \\
+  -e DB_HOST=taskmanager-db \\
+  -e DB_NAME=tasks \\
+  -e DB_USER=taskuser \\
+  -e DB_PASSWORD=taskpass \\
+  taskmanager-app`,
       },
     ],
   },
@@ -664,7 +678,7 @@ export const SESSION3_SLIDES: SlideData[] = [
     blocks: [
       {
         kind: "flow",
-        steps: ["Streamlit container", "task-network", "MySQL container"],
+        steps: ["Flask container", "taskmanager-net", "MySQL container"],
         highlightLast: true,
         tone: "sky",
       },
@@ -682,7 +696,7 @@ export const SESSION3_SLIDES: SlideData[] = [
     blocks: [
       {
         kind: "callout",
-        text: "Inside the Streamlit container, localhost is the Streamlit container — not MySQL.",
+        text: "Inside the Flask container, localhost is the Flask container — not MySQL.",
         tone: "coral",
         label: "Trap",
       },
@@ -703,7 +717,7 @@ export const SESSION3_SLIDES: SlideData[] = [
           title: "What people write",
           tone: "coral",
           mono: true,
-          lines: ["MYSQL_HOST=localhost"],
+          lines: ["DB_HOST=localhost"],
           note: "Points at the app's own container",
         },
         right: {
@@ -729,13 +743,13 @@ export const SESSION3_SLIDES: SlideData[] = [
           title: "Wrong",
           tone: "coral",
           mono: true,
-          lines: ["MYSQL_HOST=localhost"],
+          lines: ["DB_HOST=localhost"],
         },
         right: {
           title: "Right",
           tone: "mint",
           mono: true,
-          lines: ["MYSQL_HOST=task-db"],
+          lines: ["DB_HOST=taskmanager-db"],
         },
       },
     ],
@@ -751,7 +765,7 @@ export const SESSION3_SLIDES: SlideData[] = [
     blocks: [
       {
         kind: "flow",
-        steps: ["Streamlit", "hostname: task-db", "MySQL"],
+        steps: ["Flask", "hostname: taskmanager-db", "MySQL"],
         orientation: "horizontal",
         highlightLast: true,
         tone: "sky",
@@ -795,14 +809,14 @@ export const SESSION3_SLIDES: SlideData[] = [
           title: "From your browser",
           tone: "orange",
           mono: true,
-          lines: ["localhost:8501"],
+          lines: ["localhost:5000"],
           note: "External — goes through the published port",
         },
         right: {
           title: "From the app container",
           tone: "sky",
           mono: true,
-          lines: ["task-db:3306"],
+          lines: ["taskmanager-db:3306"],
           note: "Internal — goes across the Docker network",
         },
       },
@@ -819,10 +833,10 @@ export const SESSION3_SLIDES: SlideData[] = [
       {
         kind: "boxes",
         boxes: [
-          { title: "Host :8501", lines: ["your machine"], tone: "sky" },
-          { title: "Container :8501", lines: ["Streamlit"], tone: "orange" },
+          { title: "Host :5000", lines: ["your machine"], tone: "sky" },
+          { title: "Container :5000", lines: ["Flask / gunicorn"], tone: "orange" },
         ],
-        connector: "-p 8501:8501",
+        connector: "-p 5000:5000",
       },
     ],
   },
@@ -838,7 +852,7 @@ export const SESSION3_SLIDES: SlideData[] = [
     blocks: [
       {
         kind: "flow",
-        steps: ["Streamlit", "Docker network", "MySQL"],
+        steps: ["Flask", "Docker network", "MySQL"],
         orientation: "horizontal",
         tone: "mint",
       },
@@ -863,7 +877,7 @@ export const SESSION3_SLIDES: SlideData[] = [
         kind: "flow",
         steps: [
           "Browser",
-          "Streamlit container",
+          "Flask container",
           "Docker network",
           "MySQL container",
           "Named volume",
@@ -880,11 +894,11 @@ export const SESSION3_SLIDES: SlideData[] = [
     title: "What the app will do",
     subtitle: "Keep the UI simple — the Docker part is the lesson.",
     badge: "FEATURES",
-    speakerNote: "Four operations. Deliberately plain CRUD.",
+    speakerNote: "Four operations. Deliberately plain CRUD — server-rendered HTML, no JavaScript.",
     blocks: [
       {
         kind: "bullets",
-        items: ["Create task", "View tasks", "Complete task", "Delete task"],
+        items: ["Add a task", "List tasks", "Toggle complete", "Delete a task"],
         columns: 2,
         tone: "sky",
       },
@@ -902,10 +916,11 @@ export const SESSION3_SLIDES: SlideData[] = [
         kind: "code",
         filename: "schema.sql",
         language: "sql",
-        code: `CREATE TABLE tasks (
+        code: `CREATE TABLE IF NOT EXISTS tasks (
     id INT AUTO_INCREMENT PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
-    completed BOOLEAN DEFAULT FALSE
+    completed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );`,
       },
     ],
@@ -916,7 +931,8 @@ export const SESSION3_SLIDES: SlideData[] = [
     chapter: CH.taskapp,
     title: "What a database connection needs",
     badge: "CONNECTION",
-    speakerNote: "Five values. Note that host is task-db, not localhost.",
+    speakerNote:
+      "Five values. Note that host is taskmanager-db, the container name — not localhost.",
     blocks: [
       {
         kind: "split",
@@ -930,10 +946,10 @@ export const SESSION3_SLIDES: SlideData[] = [
           tone: "sky",
           mono: true,
           lines: [
-            "Host:     task-db",
+            "Host:     taskmanager-db",
             "Port:     3306",
             "Database: tasks",
-            "User:     root",
+            "User:     taskuser",
           ],
         },
       },
@@ -963,13 +979,14 @@ export const SESSION3_SLIDES: SlideData[] = [
     chapter: CH.taskapp,
     title: "requirements.txt",
     badge: "CODE",
-    speakerNote: "Two lines now. This file changing is a rebuild trigger.",
+    speakerNote:
+      "Three lines. Flask serves, the connector talks to MySQL, gunicorn runs it properly. This file changing is a rebuild trigger.",
     blocks: [
       {
         kind: "code",
         filename: "requirements.txt",
         language: "text",
-        code: "streamlit\nmysql-connector-python",
+        code: "Flask==3.1.0\nmysql-connector-python==9.2.0\ngunicorn==23.0.0",
       },
     ],
   },
@@ -979,7 +996,8 @@ export const SESSION3_SLIDES: SlideData[] = [
     chapter: CH.taskapp,
     title: "Connecting from Python",
     badge: "CODE",
-    speakerNote: 'Point straight at host="task-db". That is the whole networking lesson.',
+    speakerNote:
+      'Point straight at host="taskmanager-db". That is the whole networking lesson.',
     blocks: [
       {
         kind: "code",
@@ -988,10 +1006,10 @@ export const SESSION3_SLIDES: SlideData[] = [
         code: `import mysql.connector
 
 connection = mysql.connector.connect(
-    host="task-db",
+    host="taskmanager-db",
     port=3306,
-    user="root",
-    password="example",
+    user="taskuser",
+    password="taskpass",
     database="tasks"
 )`,
       },
@@ -1001,7 +1019,7 @@ connection = mysql.connector.connect(
     id: 45,
     slideNumber: 45,
     chapter: CH.taskapp,
-    title: "Why task-db and not localhost?",
+    title: "Why taskmanager-db and not localhost?",
     badge: "REINFORCE",
     speakerNote:
       "Third time we've made this point. That's deliberate — it's the one they'll get wrong.",
@@ -1011,10 +1029,10 @@ connection = mysql.connector.connect(
         left: {
           title: "localhost means",
           tone: "coral",
-          lines: ["The Streamlit container itself", "Where MySQL is not running"],
+          lines: ["The Flask container itself", "Where MySQL is not running"],
         },
         right: {
-          title: "task-db means",
+          title: "taskmanager-db means",
           tone: "mint",
           lines: [
             "The MySQL container",
@@ -1030,18 +1048,21 @@ connection = mysql.connector.connect(
     chapter: CH.taskapp,
     title: "Create a task",
     badge: "CODE",
-    speakerNote: "Note the commit — without it nothing is saved.",
+    speakerNote:
+      "A form POST, then an insert. Note the commit — without it nothing is saved.",
     blocks: [
       {
         kind: "code",
         filename: "app.py",
         language: "python",
-        code: `cursor.execute(
-    "INSERT INTO tasks (title) VALUES (%s)",
-    (title,)
-)
-
-connection.commit()`,
+        code: `@app.post("/tasks")
+def add_task():
+    title = request.form.get("title", "").strip()
+    cursor.execute(
+        "INSERT INTO tasks (title) VALUES (%s)", (title,)
+    )
+    connection.commit()
+    return redirect(url_for("index"))`,
       },
     ],
   },
@@ -1051,17 +1072,21 @@ connection.commit()`,
     chapter: CH.taskapp,
     title: "Read tasks",
     badge: "CODE",
-    speakerNote: "Reads need no commit.",
+    speakerNote:
+      "Reads need no commit. Unfinished tasks first, newest first within each group.",
     blocks: [
       {
         kind: "code",
         filename: "app.py",
         language: "python",
-        code: `cursor.execute(
-    "SELECT id, title, completed FROM tasks"
-)
-
-tasks = cursor.fetchall()`,
+        code: `@app.route("/")
+def index():
+    cursor.execute(
+        "SELECT id, title, completed, created_at FROM tasks"
+        " ORDER BY completed, created_at DESC"
+    )
+    tasks = cursor.fetchall()
+    return render_template("index.html", tasks=tasks)`,
       },
     ],
   },
@@ -1071,18 +1096,21 @@ tasks = cursor.fetchall()`,
     chapter: CH.taskapp,
     title: "Complete a task",
     badge: "CODE",
-    speakerNote: "An update, and a commit again.",
+    speakerNote:
+      "One route toggles both ways — NOT completed flips the flag. An update, and a commit again.",
     blocks: [
       {
         kind: "code",
         filename: "app.py",
         language: "python",
-        code: `cursor.execute(
-    "UPDATE tasks SET completed = TRUE WHERE id = %s",
-    (task_id,)
-)
-
-connection.commit()`,
+        code: `@app.post("/tasks/<int:task_id>/toggle")
+def toggle_task(task_id):
+    cursor.execute(
+        "UPDATE tasks SET completed = NOT completed"
+        " WHERE id = %s", (task_id,)
+    )
+    connection.commit()
+    return redirect(url_for("index"))`,
       },
     ],
   },
@@ -1098,12 +1126,13 @@ connection.commit()`,
         kind: "code",
         filename: "app.py",
         language: "python",
-        code: `cursor.execute(
-    "DELETE FROM tasks WHERE id = %s",
-    (task_id,)
-)
-
-connection.commit()`,
+        code: `@app.post("/tasks/<int:task_id>/delete")
+def delete_task(task_id):
+    cursor.execute(
+        "DELETE FROM tasks WHERE id = %s", (task_id,)
+    )
+    connection.commit()
+    return redirect(url_for("index"))`,
       },
     ],
   },
@@ -1119,8 +1148,8 @@ connection.commit()`,
       {
         kind: "flow",
         steps: [
-          "Browser",
-          "Streamlit",
+          "Browser form POST",
+          "Flask route",
           "MySQL driver",
           "Docker network",
           "MySQL",
@@ -1145,7 +1174,7 @@ connection.commit()`,
         kind: "code",
         filename: "app.py",
         language: "python",
-        code: 'password="example"',
+        code: 'password="taskpass"',
       },
       {
         kind: "callout",
@@ -1182,11 +1211,12 @@ connection.commit()`,
         kind: "code",
         filename: ".env",
         language: "text",
-        code: `DB_HOST=task-db
+        code: `DB_HOST=taskmanager-db
 DB_PORT=3306
 DB_NAME=tasks
-DB_USER=root
-DB_PASSWORD=example`,
+DB_USER=taskuser
+DB_PASSWORD=taskpass
+SECRET_KEY=replace-with-a-long-random-value`,
       },
     ],
   },
@@ -1228,7 +1258,7 @@ db_password = os.getenv("DB_PASSWORD")`,
           title: "Development",
           tone: "mint",
           mono: true,
-          lines: ["DB_HOST=task-db"],
+          lines: ["DB_HOST=taskmanager-db"],
         },
         right: {
           title: "Production",
@@ -1255,7 +1285,7 @@ db_password = os.getenv("DB_PASSWORD")`,
           title: "Today",
           tone: "yellow",
           mono: true,
-          lines: ["DB_PASSWORD=example"],
+          lines: ["DB_PASSWORD=taskpass"],
           note: "Fine for a workshop",
         },
         right: {
@@ -1283,10 +1313,10 @@ db_password = os.getenv("DB_PASSWORD")`,
       {
         kind: "terminal",
         lines: [
-          { cmd: "docker network create task-network" },
-          { cmd: "docker volume create mysql-data" },
-          { cmd: "docker run -d --name task-db --network ... mysql:8" },
-          { cmd: "docker run -d --name task-app --network ... -p 8501:8501 ..." },
+          { cmd: "docker network create taskmanager-net" },
+          { cmd: "docker run -d --name taskmanager-db --network taskmanager-net -e ... mysql:8.4" },
+          { cmd: "docker build -t taskmanager-app ." },
+          { cmd: "docker run -d --name taskmanager-app --network taskmanager-net -p 5000:5000 -e ..." },
         ],
       },
     ],
@@ -1396,31 +1426,38 @@ db_password = os.getenv("DB_PASSWORD")`,
         filename: "compose.yaml",
         language: "yaml",
         code: `services:
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: tasks
+      MYSQL_USER: taskuser
+      MYSQL_PASSWORD: taskpass
+      MYSQL_ROOT_PASSWORD: rootpass
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-prootpass"]
+      interval: 5s
+      timeout: 5s
+      retries: 15
+      start_period: 15s
+
   app:
     build: .
     ports:
-      - "8501:8501"
-    volumes:
-      - .:/app
+      - "5000:5000"
     environment:
       DB_HOST: db
-      DB_PORT: 3306
       DB_NAME: tasks
-      DB_USER: root
-      DB_PASSWORD: example
+      DB_USER: taskuser
+      DB_PASSWORD: taskpass
+      SECRET_KEY: replace-with-a-long-random-value
     depends_on:
-      - db
-
-  db:
-    image: mysql:8
-    environment:
-      MYSQL_ROOT_PASSWORD: example
-      MYSQL_DATABASE: tasks
-    volumes:
-      - mysql-data:/var/lib/mysql
+      db:
+        condition: service_healthy
 
 volumes:
-  mysql-data:`,
+  mysql_data:`,
       },
     ],
   },
@@ -1436,8 +1473,8 @@ volumes:
       {
         kind: "boxes",
         boxes: [
-          { title: "app", lines: ["Streamlit"], tone: "orange" },
-          { title: "db", lines: ["MySQL"], tone: "sky" },
+          { title: "app", lines: ["Flask", "built from our Dockerfile"], tone: "orange" },
+          { title: "db", lines: ["MySQL 8.4", "pulled from Docker Hub"], tone: "sky" },
         ],
       },
     ],
@@ -1478,11 +1515,15 @@ volumes:
         filename: "compose.yaml",
         language: "yaml",
         code: `ports:
-  - "8501:8501"`,
+  - "5000:5000"`,
         notes: [
           {
             label: "ports",
-            text: "Makes Streamlit reachable from your browser at localhost:8501.",
+            text: "Makes the Flask app reachable from your browser at localhost:5000.",
+          },
+          {
+            label: "And db?",
+            text: "The db service publishes nothing — only the app needs to reach it.",
           },
         ],
       },
@@ -1492,20 +1533,33 @@ volumes:
     id: 66,
     slideNumber: 66,
     chapter: CH.compose,
-    title: "The bind mount, in Compose",
-    badge: "volumes",
-    speakerNote: "This one line is our whole development workflow, carried over.",
+    title: "Asking the database if it is actually ready",
+    subtitle: "A container being up is not the same as MySQL accepting connections.",
+    badge: "healthcheck",
+    speakerNote:
+      "MySQL takes 10-20 seconds to initialise on a fresh volume. This is how Compose finds out when it is done.",
     blocks: [
       {
         kind: "annotated",
         filename: "compose.yaml",
         language: "yaml",
-        code: `volumes:
-  - .:/app`,
+        code: `healthcheck:
+  test: ["CMD", "mysqladmin", "ping", "-h", "localhost", ...]
+  interval: 5s
+  retries: 15
+  start_period: 15s`,
         notes: [
           {
-            label: "bind mount",
-            text: "The project directory is mounted into the container — edit and save, no rebuild.",
+            label: "test",
+            text: "The command Docker runs inside the db container to ask 'are you alive?'.",
+          },
+          {
+            label: "start_period",
+            text: "A grace window at startup — failures during it don't count against retries.",
+          },
+          {
+            label: "Result",
+            text: "The container is marked healthy, which the app service can then wait for.",
           },
         ],
       },
@@ -1524,7 +1578,7 @@ volumes:
         filename: "compose.yaml",
         language: "yaml",
         code: `db:
-  image: mysql:8`,
+  image: mysql:8.4`,
         notes: [
           {
             label: "image",
@@ -1552,7 +1606,7 @@ volumes:
         filename: "compose.yaml",
         language: "yaml",
         code: `volumes:
-  - mysql-data:/var/lib/mysql`,
+  - mysql_data:/var/lib/mysql`,
         notes: [
           {
             label: "named volume",
@@ -1580,12 +1634,17 @@ volumes:
         language: "yaml",
         code: `environment:
   DB_HOST: db
-  DB_PORT: 3306
-  DB_NAME: tasks`,
+  DB_NAME: tasks
+  DB_USER: taskuser
+  DB_PASSWORD: taskpass`,
         notes: [
           {
             label: "DB_HOST",
             text: "The service name db — not localhost, for exactly the reason from slide 30.",
+          },
+          {
+            label: "Note",
+            text: "The same names the app read with os.getenv on slide 54. Nothing in app.py changes.",
           },
         ],
       },
@@ -1624,7 +1683,7 @@ volumes:
           title: "By hand",
           tone: "coral",
           mono: true,
-          lines: ["docker network create", "--network task-network", "on every run"],
+          lines: ["docker network create", "--network taskmanager-net", "on every run"],
         },
         right: {
           title: "With Compose",
@@ -1642,19 +1701,31 @@ volumes:
     subtitle: "Expresses startup order — not readiness.",
     badge: "CAREFUL",
     speakerNote:
-      "Important caveat: MySQL being started is not MySQL being ready to accept connections.",
+      "Show the plain form first and its caveat, then the healthcheck form we actually use.",
     blocks: [
       {
         kind: "annotated",
         filename: "compose.yaml",
         language: "yaml",
         code: `depends_on:
-  - db`,
+  - db              # start order only
+
+depends_on:
+  db:
+    condition: service_healthy`,
         notes: [
-          { label: "Does", text: "Starts db before app." },
+          { label: "Plain form", text: "Starts db before app — and nothing more." },
           {
             label: "Does NOT",
-            text: "Wait for MySQL to be ready to accept connections. Your app still needs to retry.",
+            text: "Wait for MySQL to accept connections. The app starts against a database that isn't listening yet.",
+          },
+          {
+            label: "With a healthcheck",
+            text: "condition: service_healthy holds app back until db reports healthy. That's the form in our compose.yaml.",
+          },
+          {
+            label: "Still retry",
+            text: "The app keeps its connection retry loop anyway. Belt and braces.",
           },
         ],
       },
@@ -1669,15 +1740,17 @@ volumes:
     title: "Start everything",
     subtitle: "One command replaces the four from slide 57.",
     badge: "HANDS-ON",
-    speakerNote: "This is the moment Compose sells itself.",
+    speakerNote:
+      "This is the moment Compose sells itself. Compose names things after the project folder — name the folder taskmanager and the output matches this slide.",
     blocks: [
       {
         kind: "terminal",
         lines: [
-          { cmd: "docker compose up" },
-          { out: "[+] Running 3/3" },
+          { cmd: "docker compose up --build" },
+          { out: "[+] Running 4/4" },
           { out: " Network taskmanager_default  Created" },
-          { out: " Container taskmanager-db-1   Started" },
+          { out: " Volume  taskmanager_mysql_data  Created" },
+          { out: " Container taskmanager-db-1   Healthy" },
           { out: " Container taskmanager-app-1  Started" },
         ],
       },
@@ -1829,23 +1902,36 @@ volumes:
     id: 81,
     slideNumber: 81,
     chapter: CH.workflow,
-    title: "Now we have something genuinely useful",
-    subtitle: "No image rebuild for every Python change.",
-    badge: "THE WIN",
-    speakerNote: "Compare against slide 5 one final time.",
+    title: "Our compose.yaml ships the production shape",
+    subtitle: "Code baked into the image, served by gunicorn. Nothing is mounted.",
+    badge: "HONEST NOTE",
+    speakerNote:
+      "Say this plainly: the project as written has no bind mount, so a code change means a rebuild. The next slide adds the dev loop back.",
     blocks: [
       {
-        kind: "flow",
-        steps: [
-          "Edit code",
-          "Save",
-          "Bind mount",
-          "Container sees it",
-          "Streamlit reloads",
-        ],
-        orientation: "horizontal",
-        highlightLast: true,
-        tone: "mint",
+        kind: "split",
+        left: {
+          title: "What we built",
+          tone: "sky",
+          lines: [
+            "COPY . . in the Dockerfile",
+            "gunicorn, 2 workers",
+            "docker compose up --build after an edit",
+          ],
+        },
+        right: {
+          title: "Want the fast loop back?",
+          tone: "mint",
+          mono: true,
+          lines: [
+            "app:",
+            "  volumes:",
+            "    - .:/app",
+            "  command: flask --app app run",
+            "      --host 0.0.0.0 --debug",
+          ],
+          note: "Two extra keys on the app service, for development only",
+        },
       },
     ],
   },
@@ -1857,24 +1943,20 @@ volumes:
     subtitle: "The question everyone asks next.",
     badge: "RULES",
     speakerNote:
-      "Simple rule: code is mounted, so no rebuild. Anything baked into the image needs one.",
+      "One rule: whatever is baked into the image needs a rebuild; whatever is mounted does not.",
     blocks: [
       {
-        kind: "split",
-        left: {
-          title: "No rebuild",
-          tone: "mint",
-          mono: true,
-          lines: ["app.py", "any mounted source file"],
-          note: "It's mounted, not baked in",
-        },
-        right: {
-          title: "Rebuild",
-          tone: "coral",
-          mono: true,
-          lines: ["requirements.txt", "Dockerfile"],
-          note: "These are baked into the image",
-        },
+        kind: "table",
+        columns: ["You changed", "Rebuild?", "Why"],
+        rows: [
+          ["app.py", "Yes", "COPY . . baked it into the image"],
+          ["templates/, static/", "Yes", "Same — copied at build time"],
+          ["requirements.txt", "Yes", "pip install runs during the build"],
+          ["Dockerfile", "Yes", "It defines the image"],
+          ["compose.yaml env values", "No", "Read at container start — just up again"],
+          ["app.py, with a bind mount", "No", "Mounted, not baked in"],
+        ],
+        columnTones: ["ink", "coral", "sky"],
       },
     ],
   },
@@ -1890,9 +1972,8 @@ volumes:
         kind: "flow",
         steps: [
           "Developer edits",
-          "Host directory",
-          "Bind mount",
-          "Streamlit container",
+          "docker compose up --build",
+          "Flask container",
           "Docker network",
           "MySQL container",
           "Named volume",
@@ -2030,18 +2111,18 @@ volumes:
     slideNumber: 90,
     chapter: CH.handson,
     title: "Build it: Task Manager",
-    subtitle: "Everything from today, in one project.",
+    subtitle: "The same app, twice — by hand, then with Compose.",
     badge: "YOUR TURN",
-    speakerNote: "Hand over. This is the main practical block of the session.",
+    speakerNote:
+      "Hand over. This is the main practical block. Everyone does step1 before anyone opens step2.",
     blocks: [
       {
         kind: "boxes",
         boxes: [
-          { title: "Streamlit", tone: "orange" },
-          { title: "MySQL", tone: "sky" },
-          { title: "Docker", tone: "ink" },
-          { title: "Compose", tone: "mint" },
+          { title: "step1", lines: ["two docker run commands"], tone: "orange" },
+          { title: "step2", lines: ["one compose.yaml"], tone: "mint" },
         ],
+        connector: "same application",
       },
     ],
   },
@@ -2058,18 +2139,18 @@ volumes:
         left: {
           title: "Application",
           tone: "orange",
-          lines: ["Add task", "List tasks", "Complete task", "Delete task"],
+          lines: ["Add a task", "List tasks", "Toggle complete", "Delete a task"],
         },
         right: {
           title: "Infrastructure",
           tone: "sky",
           lines: [
-            "App container",
+            "Flask container",
             "MySQL container",
-            "Bind mount",
             "Docker network",
             "Named volume",
-            "Compose",
+            "Config from env vars",
+            "Compose (step 2)",
           ],
         },
       },
@@ -2081,16 +2162,16 @@ volumes:
     chapter: CH.handson,
     title: "Final architecture",
     badge: "TARGET",
-    speakerNote: "What their finished project should look like.",
+    speakerNote: "What their finished project should look like, either way they build it.",
     blocks: [
       {
         kind: "flow",
         steps: [
-          "Browser :8501",
-          "Streamlit container",
+          "Browser :5000",
+          "Flask container",
           "Docker network",
           "MySQL container",
-          "mysql-data volume",
+          "mysql_data volume",
         ],
         orientation: "horizontal",
         highlightLast: true,
@@ -2101,13 +2182,27 @@ volumes:
     id: 93,
     slideNumber: 93,
     chapter: CH.handson,
-    title: "Start the project",
+    title: "Create the network, start MySQL",
+    subtitle: "step1 — no Compose yet.",
     badge: "STEP 1",
-    speakerNote: "--build on the first run, since the image doesn't exist yet.",
+    speakerNote:
+      "From the step1 folder. Give MySQL a moment — the first start initialises the volume.",
     blocks: [
       {
-        kind: "terminal",
-        lines: [{ cmd: "docker compose up --build" }],
+        kind: "code",
+        filename: "terminal",
+        language: "bash",
+        code: `docker network create taskmanager-net
+
+docker run -d \\
+  --name taskmanager-db \\
+  --network taskmanager-net \\
+  -e MYSQL_DATABASE=tasks \\
+  -e MYSQL_USER=taskuser \\
+  -e MYSQL_PASSWORD=taskpass \\
+  -e MYSQL_ROOT_PASSWORD=rootpass \\
+  -v taskmanager-mysql-data:/var/lib/mysql \\
+  mysql:8.4`,
       },
     ],
   },
@@ -2115,15 +2210,28 @@ volumes:
     id: 94,
     slideNumber: 94,
     chapter: CH.handson,
-    title: "Open the application",
+    title: "Build and run the app",
+    subtitle: "Same network, published port, config in env vars.",
     badge: "STEP 2",
-    speakerNote: "Everyone should reach this before you continue.",
+    speakerNote:
+      "Point at DB_HOST=taskmanager-db one more time. That single value is today's whole networking lesson.",
     blocks: [
       {
-        kind: "mockup",
-        title: "localhost:8501",
-        fields: ["New task"],
-        result: "Task Manager",
+        kind: "code",
+        filename: "terminal",
+        language: "bash",
+        code: `docker build -t taskmanager-app .
+
+docker run -d \\
+  --name taskmanager-app \\
+  --network taskmanager-net \\
+  -p 5000:5000 \\
+  -e DB_HOST=taskmanager-db \\
+  -e DB_NAME=tasks \\
+  -e DB_USER=taskuser \\
+  -e DB_PASSWORD=taskpass \\
+  -e SECRET_KEY=replace-with-a-long-random-value \\
+  taskmanager-app`,
       },
     ],
   },
@@ -2131,14 +2239,17 @@ volumes:
     id: 95,
     slideNumber: 95,
     chapter: CH.handson,
-    title: "Test: create a task",
+    title: "Open the application",
     badge: "STEP 3",
-    speakerNote: "Verify it appears in the list.",
+    speakerNote:
+      "Everyone should reach this before you continue. The tasks table is created on the first request.",
     blocks: [
       {
-        kind: "callout",
-        text: "Create a task called \u201CLearn Docker Networking\u201D and check it shows up.",
-        tone: "sky",
+        kind: "mockup",
+        title: "localhost:5000",
+        fields: ["What needs doing?"],
+        button: "Add task",
+        result: "Task Manager",
       },
     ],
   },
@@ -2146,14 +2257,19 @@ volumes:
     id: 96,
     slideNumber: 96,
     chapter: CH.handson,
-    title: "Test: complete a task",
+    title: "Exercise all four operations",
     badge: "STEP 4",
-    speakerNote: "The update path — verify the database actually changed.",
+    speakerNote:
+      "Walk the room. If the page shows 'Database unavailable', that is the app's error template — go to the debugging checklist.",
     blocks: [
       {
-        kind: "callout",
-        text: "Mark it complete, then confirm the change persisted.",
-        tone: "sky",
+        kind: "checklist",
+        items: [
+          "Add a task called \u201CLearn Docker Networking\u201D",
+          "Confirm it appears in the list",
+          "Tick it complete, and reload the page",
+          "Delete it, and confirm it is gone",
+        ],
       },
     ],
   },
@@ -2161,14 +2277,25 @@ volumes:
     id: 97,
     slideNumber: 97,
     chapter: CH.handson,
-    title: "Test: delete a task",
+    title: "Now throw both containers away",
+    subtitle: "Add a few tasks first.",
     badge: "STEP 5",
-    speakerNote: "The delete path. All four operations now exercised.",
+    speakerNote:
+      "The Session 2 lesson, proven again: the containers are disposable, the volume is not.",
     blocks: [
       {
+        kind: "terminal",
+        lines: [
+          { cmd: "docker rm -f taskmanager-app taskmanager-db" },
+          { comment: "both containers gone" },
+          { cmd: "docker volume ls" },
+          { out: "local     taskmanager-mysql-data" },
+        ],
+      },
+      {
         kind: "callout",
-        text: "Delete it and confirm it disappears.",
-        tone: "sky",
+        text: "The volume survived. Re-run the two commands and your tasks are still there.",
+        tone: "mint",
       },
     ],
   },
@@ -2176,13 +2303,21 @@ volumes:
     id: 98,
     slideNumber: 98,
     chapter: CH.handson,
-    title: "Test: restart the containers",
+    title: "Now do it with Compose",
+    subtitle: "Same app, same database — one file, one command.",
     badge: "STEP 6",
-    speakerNote: "Down then up. This is the persistence test setup.",
+    speakerNote:
+      "Switch to the step2 folder. Nothing in app.py changed; only how the containers are described.",
     blocks: [
       {
         kind: "terminal",
-        lines: [{ cmd: "docker compose down" }, { cmd: "docker compose up" }],
+        lines: [
+          { cmd: "cd ../step2" },
+          { cmd: "docker compose up --build" },
+          { out: " Container step2-db-1   Healthy" },
+          { out: " Container step2-app-1  Started" },
+          { comment: "open http://localhost:5000" },
+        ],
       },
     ],
   },
@@ -2190,15 +2325,23 @@ volumes:
     id: 99,
     slideNumber: 99,
     chapter: CH.handson,
-    title: "The tasks are still there. Why?",
-    subtitle: "The named volume.",
+    title: "Down, up — and the tasks are still there",
+    subtitle: "Why?",
     badge: "PERSISTENCE",
     speakerNote:
-      "Make them answer before you show it. This is the Session 2 lesson paying off.",
+      "Make them answer before you show it. Then warn about down -v, which is the version that does lose the data.",
     blocks: [
       {
+        kind: "terminal",
+        lines: [
+          { cmd: "docker compose down" },
+          { cmd: "docker compose up" },
+          { comment: "every task still listed" },
+        ],
+      },
+      {
         kind: "flow",
-        steps: ["Containers removed", "Volume kept", "Data survived"],
+        steps: ["Containers removed", "mysql_data kept", "Data survived"],
         orientation: "horizontal",
         highlightLast: true,
         tone: "mint",
@@ -2209,20 +2352,33 @@ volumes:
     id: 100,
     slideNumber: 100,
     chapter: CH.handson,
-    title: "Test: change the code while it runs",
+    title: "That is what Compose bought you",
+    subtitle: "Identical application. Compare what you typed.",
     badge: "STEP 7",
-    speakerNote: "The bind mount lesson, proven in their own project.",
+    speakerNote:
+      "Put step1 and step2 side by side on screen. The application code is byte-for-byte the same.",
     blocks: [
       {
-        kind: "code",
-        filename: "app.py",
-        language: "python",
-        code: 'st.title("My Docker Task Manager")',
-      },
-      {
-        kind: "callout",
-        text: "Save the file. No rebuild, no restart — the container already sees it.",
-        tone: "mint",
+        kind: "split",
+        left: {
+          title: "step1 — by hand",
+          tone: "coral",
+          mono: true,
+          lines: [
+            "docker network create ...",
+            "docker run -d --name taskmanager-db ...",
+            "docker build -t taskmanager-app .",
+            "docker run -d --name taskmanager-app ...",
+          ],
+          note: "In order, every time, on every machine",
+        },
+        right: {
+          title: "step2 — with Compose",
+          tone: "mint",
+          mono: true,
+          lines: ["docker compose up --build"],
+          note: "The network, the volume and the wait for MySQL come free",
+        },
       },
     ],
   },
@@ -2340,11 +2496,11 @@ volumes:
       {
         kind: "terminal",
         lines: [
-          { cmd: "docker network create ..." },
-          { cmd: "docker volume create ..." },
-          { cmd: "docker run mysql ..." },
-          { cmd: "docker run app ..." },
-          { comment: "in the right order, every time" },
+          { cmd: "docker network create taskmanager-net" },
+          { cmd: "docker run -d --name taskmanager-db ... mysql:8.4" },
+          { cmd: "docker build -t taskmanager-app ." },
+          { cmd: "docker run -d --name taskmanager-app ... taskmanager-app" },
+          { comment: "in the right order, every time, on every machine" },
         ],
       },
     ],
@@ -2376,7 +2532,8 @@ volumes:
         kind: "flow",
         steps: [
           "Write code",
-          "Bind mount",
+          "Dockerfile",
+          "Image",
           "Container",
           "Docker network",
           "Database",
@@ -2513,11 +2670,11 @@ volumes:
       {
         kind: "bullets",
         items: [
-          "Images could be smaller",
-          "Containers could be more secure",
-          "Configuration could be better",
-          "The app needs health checks",
-          "Someone has to deploy this",
+          "Nobody else can reach it",
+          "The image only exists on your laptop",
+          "The passwords are committed to Git",
+          "There is no padlock in the address bar",
+          "Closing the laptop takes it offline",
         ],
         columns: 1,
         tone: "coral",
@@ -2528,21 +2685,23 @@ volumes:
     id: 114,
     slideNumber: 114,
     chapter: CH.next,
-    title: "Session 4 — Docker for Production",
+    title: "Session 4 — Docker to Production",
+    subtitle: "The same application, on a real server, on your own domain.",
     badge: "NEXT SESSION",
-    speakerNote: "Sell the next one, then close.",
+    speakerNote:
+      "Sell the next one, then close. By the end of it their app is on the public internet with a valid certificate.",
     blocks: [
       {
         kind: "bullets",
         items: [
-          "Multi-stage builds",
-          "Image optimisation",
-          "Non-root containers",
-          "Security basics",
-          "Health checks",
-          "Resource limits",
-          "Production configuration",
-          "Deployment",
+          "Publishing to Docker Hub",
+          "Renting a server (EC2)",
+          "Security groups and SSH",
+          "Compose in production",
+          "Domains and DNS",
+          "Automatic HTTPS with Caddy",
+          "Secrets on a server",
+          "Shipping and rolling back",
         ],
         columns: 2,
         tone: "sky",

@@ -375,6 +375,16 @@ code, pre, .font-mono {
 .tactile-btn-mint      { background-color: var(--mint);       color: #1B1F3B; }
 .tactile-btn-coral     { background-color: var(--coral);      color: #FFFFFF; }
 
+/* Pill variant — the one rounded shape in the system, reserved for the
+   Notes & links call-to-action so students spot it among the square chrome. */
+.tactile-btn-pill {
+  border-radius: 999px;
+}
+
+.tactile-btn-pill:focus-visible {
+  outline-offset: 4px;
+}
+
 /* Brutalist Cards — square corners, heavy rule, deep offset */
 .card-brut {
   background-color: var(--paper-pure);

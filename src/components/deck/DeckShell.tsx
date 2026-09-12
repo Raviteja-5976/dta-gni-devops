@@ -14,6 +14,7 @@ import {
   Minimize,
   Grid,
   Home,
+  StickyNote,
 } from "lucide-react";
 
 /** Hide the deck chrome after this long without pointer movement. */
@@ -150,10 +151,22 @@ export function DeckShell({
           <Link
             href="/"
             className="tactile-btn tactile-btn-secondary px-3 py-2 text-xs shrink-0"
-            title="Back to all sessions"
+            title="Back to the homepage"
           >
             <Home className="w-4 h-4 shrink-0" />
-            <span className="max-[900px]:hidden">Sessions</span>
+            <span className="max-[900px]:hidden">Home</span>
+          </Link>
+
+          {/* Opens in a new tab so the class does not lose its place in the deck. */}
+          <Link
+            href="/notes"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="tactile-btn tactile-btn-sky tactile-btn-pill px-4 py-2 text-xs shrink-0"
+            title="Notes and links (opens in a new tab)"
+          >
+            <StickyNote className="w-4 h-4 shrink-0" />
+            <span className="max-[900px]:hidden">Notes</span>
           </Link>
 
           <span className="shrink-0 inline-flex items-center bg-[#FFF8F0] text-[#1B1F3B] px-3 py-2 border-4 border-[#1B1F3B] shadow-[4px_4px_0_#1B1F3B] font-mono text-xs font-bold tabular-nums">

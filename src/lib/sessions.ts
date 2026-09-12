@@ -53,7 +53,7 @@ export const SESSIONS: WorkshopSession[] = [
     number: 3,
     title: "Docker Development Workflow: Bind Mounts, Networking & Compose",
     tagline:
-      "Stop rebuilding for every edit, get two containers talking, and describe the whole stack in one file.",
+      "Build a Flask + MySQL Task Manager twice: two containers wired by hand, then the same app in one compose.yaml.",
     topics: ["Bind mounts", "Networking", "Compose", "Env vars", "Debugging"],
     accent: "yellow",
     slides: SESSION3_SLIDES,
@@ -61,10 +61,10 @@ export const SESSIONS: WorkshopSession[] = [
   {
     slug: "session-4",
     number: 4,
-    title: "Docker to Production: AWS, Databases & CI/CD",
+    title: "Docker to Production: Docker Hub, EC2 & HTTPS",
     tagline:
-      "Take the Task Manager off the laptop: a registry, containers on AWS, a managed database, and a pipeline that deploys on every push.",
-    topics: ["ECR", "ECS / Fargate", "RDS", "GitHub Actions", "Debugging"],
+      "Take the Task Manager off the laptop: publish the image, rent a server, put it on a domain, and get a padlock in the browser.",
+    topics: ["Docker Hub", "EC2", "Compose", "Caddy / TLS", "Secrets", "Debugging"],
     accent: "mint",
     slides: SESSION4_SLIDES,
   },

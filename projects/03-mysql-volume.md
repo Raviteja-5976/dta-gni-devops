@@ -195,9 +195,9 @@ Same rows, in a brand-new container.
 `mysql-session2/` also contains a Flask front end that connects to this MySQL
 container over a user-defined Docker network (`blog-network`). Networking and
 multi-container apps are Session 3's topic. See
-[Project 4](04-task-manager-compose.md).
+[Project 4](04-task-manager-two-containers.md).
 
 ## Leads into
 
-[Project 4 — Task Manager with Compose](04-task-manager-compose.md). You now
-have a persistent database. Next, an application talks to it.
+[Project 4 — Task Manager: Two Containers, Wired by Hand](04-task-manager-two-containers.md).
+You now have a persistent database. Next, an application talks to it.

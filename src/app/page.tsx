@@ -54,9 +54,9 @@ export default async function HomePage() {
 
           <Link
             href="/notes"
-            className="tactile-btn tactile-btn-sky px-5 py-2.5 text-xs mt-8"
+            className="tactile-btn tactile-btn-sky tactile-btn-pill px-8 py-4 text-base mt-8"
           >
-            <StickyNote className="w-4 h-4 shrink-0" />
+            <StickyNote className="w-6 h-6 shrink-0" />
             Notes &amp; links
           </Link>
 
